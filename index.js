@@ -94,6 +94,13 @@ app.get('/api/ping', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Test endpoint is working',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Test d'envoi d'email (protégé)
 app.post('/api/email/test', auth, async (req, res) => {
