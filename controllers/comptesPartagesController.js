@@ -129,11 +129,15 @@ const comptesPartagesController = {
 
     // Récupérer comptes auxquels un utilisateur a accès
     getByUser: (req, res) => {
-        const currentUserId = req.user?.id_user;
-        const requestedUserId = parseInt(req.params.id_user);
+        const currentUserId = Number(req.user?.id_user);
+        const requestedUserId = Number(req.params.id_user);
         
-        if (!currentUserId) {
+        if (!Number.isFinite(currentUserId)) {
             return res.status(401).json({ message: 'Non authentifié' });
+        }
+
+        if (!Number.isFinite(requestedUserId)) {
+            return res.status(400).json({ message: 'id_user invalide' });
         }
 
         // Vérifier que l'utilisateur actuel n'est pas admin

@@ -3,14 +3,29 @@ const db = require('../config/db');
 const Compte = {
     // Créer un compte
     create: (data, callback) => {
-        const sql = 'INSERT INTO Comptes (id_user, nom, solde, type) VALUES (?, ?, ?, ?)';
+        const sql = 'INSERT INTO Comptes (id_user, nom, solde, type) VALUES (?, ?, ?, ?) RETURNING id_compte';
         db.query(sql, [data.id_user, data.nom, data.solde, data.type], callback);
     },
 
     // Trouver les comptes d’un utilisateur
     findByUserId: (id_user, callback) => {
-        const sql = 'SELECT * FROM Comptes WHERE id_user = ?';
-        db.query(sql, [id_user], callback);
+        const sql = `
+            SELECT 
+                c.*,
+                u.devise,
+                CASE 
+                    WHEN c.id_user = ? THEN 'proprietaire'
+                    ELSE COALESCE(cp.role, 'contributeur')
+                END AS access_role
+            FROM Comptes c
+            INNER JOIN Users u ON u.id_user = c.id_user
+            LEFT JOIN Comptes_partages cp 
+                ON cp.id_compte = c.id_compte 
+               AND cp.id_user = ?
+            WHERE c.id_user = ? OR cp.id_user = ?
+            ORDER BY c.id_compte DESC
+        `;
+        db.query(sql, [id_user, id_user, id_user, id_user], callback);
     },
 
     // Trouver un compte par son id

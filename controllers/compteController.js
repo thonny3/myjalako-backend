@@ -1,6 +1,5 @@
 const Compte = require('../models/compteModel');
 const ComptePartage  = require('../models/comptesPartagesModel');
-const db = require('../config/db');
 
 // --- Controller Comptes ---
 const compteController = {
@@ -25,8 +24,22 @@ const compteController = {
                 console.error('Erreur création compte:', err);
                 return res.status(500).json({ error: err });
             }
-            res.status(201).json({ message: "Compte créé avec succès", id: result.insertId });
-            ComptePartage.create({id_compte:result.insertId,id_user,role:"proprietaire"});
+            const accountId = result?.insertId;
+            res.status(201).json({ message: "Compte créé avec succès", id: accountId });
+
+            if (!accountId) {
+                console.error('Compte créé mais id_compte introuvable, partage propriétaire ignoré');
+                return;
+            }
+
+            ComptePartage.create(
+                { id_compte: accountId, id_user, role: "proprietaire" },
+                (shareErr) => {
+                    if (shareErr) {
+                        console.error('Erreur création partage propriétaire:', shareErr);
+                    }
+                }
+            );
         });
     },
 
@@ -75,28 +88,10 @@ const compteController = {
     getMyAccounts: (req, res) => {
         const id_user = req.user.id_user;
         console.log(`Récupération des comptes pour l'utilisateur ID: ${id_user}`);
-        
-        // Récupérer les comptes avec la devise de l'utilisateur
-        const sql = `
-            SELECT c.*, u.devise 
-            FROM Comptes c 
-            INNER JOIN Users u ON u.id_user = c.id_user 
-            WHERE c.id_user = ?
-        `;
-        
-        db.query(sql, [id_user], (err, rows) => {
+
+        Compte.findByUserId(id_user, (err, rows) => {
             if (err) {
                 console.error('Erreur lors de la récupération des comptes:', err);
-                
-                // Détecter si la table est corrompue
-                if (err.code === 'ER_CRASHED_ON_USAGE' || err.errno === 1194) {
-                    return res.status(500).json({ 
-                        error: err,
-                        message: 'La table Comptes est corrompue et doit être réparée.',
-                        fix: 'Exécutez le script repair-table.js ou la commande SQL: REPAIR TABLE Comptes;'
-                    });
-                }
-                
                 return res.status(500).json({ error: err });
             }
             res.json(rows);

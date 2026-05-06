@@ -5,9 +5,16 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sendEmail } = require('../services/emailService');
 
+const safeBody = (req) => (req && typeof req.body === 'object' && req.body !== null ? req.body : {});
+
 const userController = {
     register: (req, res) => {
-        const { nom, prenom, email, password, currency } = req.body;
+        if (process.env.DEBUG_REGISTER === '1') {
+            console.log('[register] content-type:', req.headers['content-type']);
+            console.log('[register] body:', req.body);
+        }
+
+        const { nom, prenom, email, password, currency } = safeBody(req);
         
         // Validation des champs requis
         if (!nom || !prenom || !email || !password || !currency) {
@@ -114,7 +121,7 @@ const userController = {
         });
     },
     resetPassword: (req, res) => {
-        const { token, newPassword } = req.body;
+        const { token, newPassword } = safeBody(req);
         if (!token || !newPassword) return res.status(400).json({ error: 'Token et nouveau mot de passe requis' });
         if (newPassword.length < 6) return res.status(400).json({ error: 'Mot de passe trop court' });
 
@@ -258,7 +265,7 @@ const userController = {
         });
     },
     login: (req, res) => {
-        const { email, password } = req.body;
+        const { email, password } = safeBody(req);
 
         // Validation des champs requis
         if (!email || !password) {
@@ -409,7 +416,7 @@ const userController = {
     // Changer le mot de passe de l'utilisateur authentifié
     changePassword: (req, res) => {
         const userId = req.user.id_user;
-        const { currentPassword, newPassword } = req.body;
+        const { currentPassword, newPassword } = safeBody(req);
 
         if (!currentPassword || !newPassword) {
             return res.status(400).json({

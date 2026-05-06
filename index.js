@@ -34,6 +34,7 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
 // Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors({
   //origin: 'http://192.168.1.248:8081', // ton front (Next.js/React)
   origin: '*',

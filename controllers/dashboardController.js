@@ -93,6 +93,12 @@ const DashboardController = {
           WHERE b.id_user = ?
           ORDER BY b.mois DESC, b.id_budget DESC
           LIMIT 4
+        `,
+        portfolioSnapshot: `
+          SELECT
+            COALESCE((SELECT SUM(c.solde) FROM Comptes c WHERE c.id_user = ?), 0) AS comptes_total,
+            COALESCE((SELECT SUM(i.montant_investi) FROM Investissements i WHERE i.id_user = ?), 0) AS investi_total,
+            COALESCE((SELECT SUM(COALESCE(i.valeur_actuelle, i.montant_investi)) FROM Investissements i WHERE i.id_user = ?), 0) AS valeur_actuelle_total
         `
       };
 
@@ -114,7 +120,8 @@ const DashboardController = {
         debtSnapshotRows,
         subscriptionSnapshotRows,
         subscriptionFrequencyRows,
-        budgetUsageRows
+        budgetUsageRows,
+        portfolioSnapshotRows
       ] = await Promise.all([
         run(queries.totalBalance, [id_user]),
         run(queries.monthlyIncome, [id_user]),
@@ -126,7 +133,8 @@ const DashboardController = {
         run(queries.debtSnapshot, [id_user]),
         run(queries.subscriptionSnapshot, [id_user]),
         run(queries.subscriptionByFrequency, [id_user]),
-        run(queries.budgetUsage, [id_user])
+        run(queries.budgetUsage, [id_user]),
+        run(queries.portfolioSnapshot, [id_user, id_user, id_user])
       ]);
 
       const safeNum = (rows, key) => {
@@ -189,6 +197,18 @@ const DashboardController = {
           })
         : [];
 
+      const portfolioRaw = portfolioSnapshotRows?.[0] || {};
+      const accountsTotal = Number(portfolioRaw.comptes_total || 0);
+      const investedTotal = Number(portfolioRaw.investi_total || 0);
+      const currentValueTotal = Number(portfolioRaw.valeur_actuelle_total || 0);
+      const portfolio = {
+        accountsTotal,
+        investedTotal,
+        currentValueTotal,
+        total: accountsTotal + currentValueTotal,
+        pnl: currentValueTotal - investedTotal
+      };
+
       const payload = {
         totalBalance: safeNum(totalBalanceRows, 'total'),
         monthlyIncome: safeNum(monthlyIncomeRows, 'total'),
@@ -200,7 +220,8 @@ const DashboardController = {
         debtOverview,
         subscriptionOverview,
         subscriptionFrequency,
-        budgetOverview
+        budgetOverview,
+        portfolio
       };
 
       res.json(payload);

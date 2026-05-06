@@ -30,30 +30,30 @@ const Transactions = {
       ) AS derniere_date
     FROM (
       SELECT 
-        id_revenu AS id_transaction, 
-        Revenus.id_user, 
-        Revenus.montant, 
-        date_revenu AS date_transaction,
-        source AS description, 
-        id_categorie_revenu AS id_categorie, 
-        id_compte,
-        NULL AS id_objectif,
-        'revenu' AS type
+        id_revenu::bigint AS id_transaction, 
+        Revenus.id_user::bigint, 
+        Revenus.montant::numeric, 
+        date_revenu::date AS date_transaction,
+        source::text AS description, 
+        id_categorie_revenu::bigint AS id_categorie, 
+        id_compte::bigint,
+        NULL::bigint AS id_objectif,
+        'revenu'::text AS type
       FROM Revenus
       WHERE id_user = ? OR id_compte IN (SELECT id_compte FROM Comptes_partages WHERE id_user = ?)
 
       UNION ALL
 
       SELECT 
-        id_depense AS id_transaction, 
-        d.id_user, 
-        d.montant, 
-        date_depense AS date_transaction,
-        description, 
-        id_categorie_depense AS id_categorie, 
-        d.id_compte,
-        NULL AS id_objectif,
-        CASE WHEN cd.nom = 'Abonnements' THEN 'abonnement' ELSE 'depense' END AS type
+        id_depense::bigint AS id_transaction, 
+        d.id_user::bigint, 
+        d.montant::numeric, 
+        date_depense::date AS date_transaction,
+        description::text, 
+        id_categorie_depense::bigint AS id_categorie, 
+        d.id_compte::bigint,
+        NULL::bigint AS id_objectif,
+        CASE WHEN cd.nom = 'Abonnements' THEN 'abonnement' ELSE 'depense' END::text AS type
       FROM Depenses d
       LEFT JOIN categories_depenses cd ON d.id_categorie_depense = cd.id
       WHERE d.id_user = ? OR d.id_compte IN (SELECT id_compte FROM Comptes_partages WHERE id_user = ?)
@@ -61,30 +61,30 @@ const Transactions = {
       UNION ALL
 
       SELECT
-        id_contribution AS id_transaction,
-        Contributions.id_user,
-        Contributions.montant,
-        date_contribution AS date_transaction,
-        'Contribution' AS description,
-        NULL AS id_categorie,
-        Contributions.id_compte,
-        id_objectif,
-        'contribution' AS type
+        id_contribution::bigint AS id_transaction,
+        Contributions.id_user::bigint,
+        Contributions.montant::numeric,
+        date_contribution::date AS date_transaction,
+        'Contribution'::text AS description,
+        NULL::bigint AS id_categorie,
+        Contributions.id_compte::bigint,
+        id_objectif::bigint,
+        'contribution'::text AS type
       FROM Contributions
       WHERE id_user = ? OR id_compte IN (SELECT id_compte FROM Comptes_partages WHERE id_user = ?)
 
       UNION ALL
 
       SELECT
-        id_remboursement AS id_transaction,
-        r.id_user,
-        -r.montant AS montant,
-        r.date_paiement AS date_transaction,
-        COALESCE(d.nom, '') AS description,
-        NULL AS id_categorie,
-        r.id_compte,
-        NULL AS id_objectif,
-        'remboursement_dette' AS type
+        id_remboursement::bigint AS id_transaction,
+        r.id_user::bigint,
+        (-r.montant)::numeric AS montant,
+        r.date_paiement::date AS date_transaction,
+        COALESCE(d.nom, '')::text AS description,
+        NULL::bigint AS id_categorie,
+        r.id_compte::bigint,
+        NULL::bigint AS id_objectif,
+        'remboursement_dette'::text AS type
       FROM Remboursements r
       LEFT JOIN Dettes d ON r.id_dette = d.id_dette
       WHERE r.id_user = ? OR r.id_compte IN (SELECT id_compte FROM Comptes_partages WHERE id_user = ?)
@@ -99,7 +99,7 @@ const Transactions = {
       ON t.type = 'contribution' AND t.id_objectif = o.id_objectif
     LEFT JOIN Users u
       ON u.id_user = t.id_user
-    WHERE (? IS NULL OR t.id_user = ?)
+    WHERE (?::bigint IS NULL OR t.id_user = ?::bigint)
     ORDER BY t.date_transaction DESC
   `;
 
